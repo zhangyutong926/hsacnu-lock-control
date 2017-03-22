@@ -1,0 +1,14 @@
+name:               HsacnuLockControl
+version:            0.0.0
+cabal-version:      >= 1.8
+build-type:         Simple
+
+executable          HsacnuLockControl
+  main-is:          Main.hs
+
+  ghc-options:      -Wall -fwarn-tabs -O2
+
+  build-depends:  base
+                , yesod-core
+
+  ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N
