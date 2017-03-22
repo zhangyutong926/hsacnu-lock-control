@@ -10,5 +10,7 @@ executable          HsacnuLockControl
 
   build-depends:  base
                 , yesod-core
+                , shakespeare
+                , blaze-html
 
   ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N

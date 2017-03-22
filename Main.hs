@@ -38,18 +38,46 @@ import System.Environment (getArgs)
 import Control.Exception hiding (Handler)
 
 import Yesod.Core
+import Text.Hamlet
+import Text.Blaze.Html.Renderer.String
 
 -- Application routing/database/resource configuration, no modification unless
 -- you are extremely certain what they're and what are their function.
--- Configuration Segment Begin
-data HelloWorld = HelloWorld
+data HsacnuLockControl = HsacnuLockControl
 
-$(mkYesod "HelloWorld" [parseRoutes|
+$(mkYesod "HsacnuLockControl" [parseRoutes|
 / HomeR GET
 |])
 
-instance Yesod HelloWorld
--- Configuration Segment End
+instance Yesod HsacnuLockControl
+
+htmlTest :: Html
+htmlTest = [shamlet|
+<p>Greetings.
+<p>System functioning normally.
+<p>Please designate your intention.
+|
+
+-- UserInfo Enum Sex
+data Sex = Male | Female | Unspecified deriving (Eq, Enum, Show, Read)
+
+-- UserInfo Primary ADT
+data UserInfo = RequesterUser {
+                                openId :: String,
+                                nickName :: String,
+                                sex :: Sex,
+                                province :: String,
+                                city :: String,
+                                country :: String,
+                                headImageUrl :: String,
+                                privilege :: [String],
+                                unionId :: String
+                              }
+              | ResponserUser {
+                                placeholder :: ()
+                              } deriving (Eq, Show, Read)
+
+-- ADT Model End
 
 -- Handler is the controller of web application (controller in MVC)
 -- Handler Definition Segment Begin
@@ -91,5 +119,5 @@ main = do
   putStrLn "Source Code License: GNU_GPL License Version 3.0"
   port <- httpPort
   putStrLn "Haskell Yesod Warp Web Engine, initiating......"
-  warp port HelloWorld
+  warp port HsacnuLockControl
 
