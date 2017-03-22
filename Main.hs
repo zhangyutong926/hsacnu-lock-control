@@ -56,7 +56,7 @@ htmlTest = [shamlet|
 <p>Greetings.
 <p>System functioning normally.
 <p>Please designate your intention.
-|
+|]
 
 -- UserInfo Enum Sex
 data Sex = Male | Female | Unspecified deriving (Eq, Enum, Show, Read)
@@ -77,14 +77,9 @@ data UserInfo = RequesterUser {
                                 placeholder :: ()
                               } deriving (Eq, Show, Read)
 
--- ADT Model End
-
 -- Handler is the controller of web application (controller in MVC)
--- Handler Definition Segment Begin
 getHomeR :: Handler Html
 getHomeR = defaultLayout [whamlet|Hello World!|]
-
--- Handler Definition Segment End
 
 -- Default web-server port, you may modify it if you want to
 defaultPort :: Int
