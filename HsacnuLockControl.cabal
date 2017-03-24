@@ -12,5 +12,6 @@ executable          HsacnuLockControl
                 , yesod-core
                 , shakespeare
                 , blaze-html
+--                , lens
 
-  ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N
+  ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N -Wunused-imports
