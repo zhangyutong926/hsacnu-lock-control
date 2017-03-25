@@ -36,29 +36,29 @@
 module Main where
 
 import System.Environment (getArgs)
+import System.Exit (exitWith, ExitCode(ExitFailure))
 import Control.Exception hiding (Handler)
 
 import Yesod.Core
 import Text.Hamlet
 import Text.Blaze.Html.Renderer.String
 
-import qualified Network.HTTP.Types as H
-
 -- Application routing/database/resource configuration, no modification unless
 -- you are extremely certain what they're and what are their function.
 data HsacnuLockControl =
-  HsacnuLockControlWithConfig {
-    wcOpenId :: String,
+  HsacnuLockControl {
+    servPort :: Int,
+    wcAppId :: String,
     dbUrl :: String,
     dbUser :: String,
     dbPswd :: String
-  } | HsacnuLockControl
+  } -- | HsacnuLockControl
 -- $(makeLenses ''HsacnuLockControlWithConfig)
 
 $(mkYesod "HsacnuLockControl" [parseRoutes|
 / HomeR GET
 /wechat_openid_redirect WeChatOpenIDRedirectR GET
-/wechat_openid_callback WeChatOpenIDCallback GET
+-- /wechat_openid_callback WeChatOpenIDCallback GET
 |])
 
 instance Yesod HsacnuLockControl
@@ -78,8 +78,8 @@ data UserInfo =
     headImageUrl :: String,
     privilege :: [String],
     unionId :: String
-  } | ResponserUser {
-    placeholder :: () -- TODO Repsonser
+  } | ResponderUser {
+    placeholder :: () -- TODO Repsonder
   } deriving (Eq, Show, Read)
 
 jQueryW :: Widget
@@ -123,21 +123,21 @@ getWeChatOpenIDRedirectR = redirect ("https://google.com" :: String)
 defaultPort :: Int
 defaultPort = 3000
 
--- This is the function that used to extract the information about port that we
--- are using from the command line arguments, to be more specific, the first.
--- And if there's no argument or the format of the first one is not number, the
--- port number stored in `defaultPort` will will used.
-httpPort :: IO Int
-httpPort = do
-  args <- getArgs
-  let port = ((read (head args)) :: Int)
-  if null args
-    then do
-      putStrLn "Port option missing, using default value 3000."
-      return defaultPort
-    else handle (\(SomeException _) ->
-        putStrLn "Port option error, using default value 3000" >> return defaultPort)
-        (putStrLn ("Port option " ++ (show port) ++ " received.") >> return port)
+-- Use this function to extract port, wcAppId, db url, db username, db password from
+-- command line interface arguments.
+-- The function may fail so you may want to use a try or a handle
+cliArgConf :: [String] -> HsacnuLockControl
+cliArgConf [portRaw, wcAppId, dbUrl, dbUser, dbPswd] =
+  HsacnuLockControl {
+    servPort = port,
+    wcAppId = wcAppId,
+    dbUrl = dbUrl,
+    dbUser = dbUser,
+    dbPswd = dbPswd
+  }
+  where
+    port :: Int
+    port = read portRaw
 
 -- Entry function of the application.
 -- Print something irrelevant and boring >>
@@ -146,11 +146,20 @@ httpPort = do
 -- Initiate the Warp Engine
 main :: IO ()
 main = do
-  putStrLn "HsacnuLockControl Project Server-Side Software Version 1.0, initiating......"
+  putStrLn "HsacnuLockControl Project Server-Side Software Version 1.0, initiating..."
   putStrLn "Author: Evrika Logismos Lamda"
   putStrLn "Release Date: Stardate -94822.0"
   putStrLn "Source Code License: GNU_GPL License Version 3.0"
-  port <- httpPort
-  putStrLn "Haskell Yesod Warp Web Engine, initiating......"
-  warp port HsacnuLockControl
+
+  args <- getArgs
+  appInst <- handle
+    (\(SomeException _) ->
+      putStrLn "Incorrect argument number or type, server terminating..."
+      >> (exitWith (ExitFailure 1)))
+    (return (cliArgConf args))
+  putStrLn "Type correct configuration received:"
+
+
+  putStrLn "Haskell Yesod Warp Web Engine, initiating..."
+  warp (servPort appInst) appInst
 
