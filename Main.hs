@@ -160,7 +160,7 @@ main = do
     then do
       putStrLn "Incorrect argument number or type, server terminating..."
       exitWith $ ExitFailure 1
-      return HsacnuLockControlConfFail
+      return undefined
     else
       return ((\(Just a) -> a) parsedConf)
 
