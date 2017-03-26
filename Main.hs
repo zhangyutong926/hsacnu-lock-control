@@ -37,7 +37,8 @@ module Main where
 
 import System.Environment (getArgs)
 import System.Exit (exitWith, ExitCode(ExitFailure))
-import Control.Exception hiding (Handler)
+-- import Control.Exception hiding (Handler)
+import Text.Read (readMaybe)
 
 import Yesod.Core
 import Text.Hamlet
@@ -52,7 +53,8 @@ data HsacnuLockControl =
     dbUrl :: String,
     dbUser :: String,
     dbPswd :: String
-  } -- | HsacnuLockControl
+  } | HsacnuLockControlConfFail
+    deriving (Eq, Show, Read) -- | HsacnuLockControl
 -- $(makeLenses ''HsacnuLockControlWithConfig)
 
 $(mkYesod "HsacnuLockControl" [parseRoutes|
@@ -126,18 +128,19 @@ defaultPort = 3000
 -- Use this function to extract port, wcAppId, db url, db username, db password from
 -- command line interface arguments.
 -- The function may fail so you may want to use a try or a handle
-cliArgConf :: [String] -> HsacnuLockControl
+cliArgConf :: [String] -> Maybe HsacnuLockControl
 cliArgConf [portRaw, wcAppId, dbUrl, dbUser, dbPswd] =
-  HsacnuLockControl {
+  port >>= (\port -> Just HsacnuLockControl {
     servPort = port,
     wcAppId = wcAppId,
     dbUrl = dbUrl,
     dbUser = dbUser,
     dbPswd = dbPswd
-  }
+  })
   where
-    port :: Int
-    port = read portRaw
+    port :: Maybe Int
+    port = readMaybe portRaw
+cliArgConf _ = Nothing
 
 -- Entry function of the application.
 -- Print something irrelevant and boring >>
@@ -152,13 +155,14 @@ main = do
   putStrLn "Source Code License: GNU_GPL License Version 3.0"
 
   args <- getArgs
-  appInst <- handle
-    (\(SomeException _) ->
+  let parsedConf = (cliArgConf args)
+  appInst <- if parsedConf == Nothing
+    then do
       putStrLn "Incorrect argument number or type, server terminating..."
-      >> (exitWith (ExitFailure 1)))
-    (return (cliArgConf args))
-  putStrLn "Type correct configuration received:"
-
+      exitWith $ ExitFailure 1
+      return HsacnuLockControlConfFail
+    else
+      return ((\(Just a) -> a) parsedConf)
 
   putStrLn "Haskell Yesod Warp Web Engine, initiating..."
   warp (servPort appInst) appInst
