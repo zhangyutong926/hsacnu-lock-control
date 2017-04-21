@@ -9,9 +9,14 @@ executable          HsacnuLockControl
   ghc-options:      -Wall -fwarn-tabs -O2
 
   build-depends:  base
+                , text
                 , yesod-core
                 , shakespeare
                 , blaze-html
+                , persistent
+                , persistent-sqlite
+                , persistent-template
+                , uri-encode
 --                , lens
 
   ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N -Wunused-imports -Wname-shadowing

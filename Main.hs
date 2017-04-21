@@ -32,16 +32,20 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 
 module Main where
 
+import qualified Network.URI.Encode as URIE
+import qualified Data.Text as ST
+
 import System.Environment (getArgs)
 import System.Exit (exitWith, ExitCode(ExitFailure))
--- import Control.Exception hiding (Handler)
 import Text.Read (readMaybe)
 
 import Yesod.Core
 import Text.Hamlet
+import Text.Shakespeare.Text
 import Text.Blaze.Html.Renderer.String
 
 -- Application routing/database/resource configuration, no modification unless
@@ -60,7 +64,7 @@ data HsacnuLockControl =
 $(mkYesod "HsacnuLockControl" [parseRoutes|
 / HomeR GET
 /wechat_openid_redirect WeChatOpenIDRedirectR GET
--- /wechat_openid_callback WeChatOpenIDCallback GET
+/wechat_openid_callback WeChatOpenIDCallbackR GET
 |])
 
 instance Yesod HsacnuLockControl
@@ -87,9 +91,9 @@ data UserInfo =
 jQueryW :: Widget
 jQueryW = addScriptRemote "https://code.jquery.com/jquery-3.2.1.min.js"
 
--- Home page Widget (welcome info and continue button)
-homePageP :: Widget
-homePageP = do
+-- Handler is the controller of web application (controller in MVC)
+getHomeR :: Handler Html
+getHomeR = defaultLayout $ do
   setTitle "HsacnuLockControl - Home Page"
   toWidget [hamlet|
     <h1>HsacnuLockControl - Home Page
@@ -113,13 +117,20 @@ homePageP = do
       <a href=@{WeChatOpenIDRedirectR}>WeChat OpenID Validation
   |]
 
--- Handler is the controller of web application (controller in MVC)
-getHomeR :: Handler Html
-getHomeR = defaultLayout homePageP
-
 -- Redirect the user to the WeChat OpenID Login Page
 getWeChatOpenIDRedirectR :: Handler ()
-getWeChatOpenIDRedirectR = redirect ("https://google.com" :: String)
+getWeChatOpenIDRedirectR = do
+  HsacnuLockControl {..} <- getYesod
+  urlRender <- getUrlRender
+  let encoded = URIE.encode $ ST.unpack $ urlRender WeChatOpenIDCallbackR
+  redirect ([st|
+    https://open.weixin.qq.com/connect/oauth2/authorize?appid=#{wcAppId}&redirect_uri=#{encoded}&response_type=code&scope=snsapi_userinfo#wechat_redirect
+  |])
+
+getWeChatOpenIDCallbackR :: Handler Html
+getWeChatOpenIDCallbackR = defaultLayout $ do
+  setTitle "HsacnuLockControl - Logic Callback"
+  toWidget [hamlet|Callback!|]
 
 -- Default web-server port, you may modify it if you want to
 defaultPort :: Int
@@ -166,4 +177,3 @@ main = do
 
   putStrLn "Haskell Yesod Warp Web Engine, initiating..."
   warp (servPort appInst) appInst
-
