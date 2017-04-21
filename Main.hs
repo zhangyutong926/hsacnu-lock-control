@@ -33,6 +33,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE DoAndIfThenElse #-}
 
 module Main where
 
@@ -67,7 +68,8 @@ $(mkYesod "HsacnuLockControl" [parseRoutes|
 /wechat_openid_callback WeChatOpenIDCallbackR GET
 |])
 
-instance Yesod HsacnuLockControl
+instance Yesod HsacnuLockControl where
+  approot = ApprootStatic "http://localhost:3000" -- For debug only
 
 -- UserInfo Enum Sex
 data Sex = Male | Female | Unspecified deriving (Eq, Enum, Show, Read)
@@ -88,6 +90,7 @@ data UserInfo =
     placeholder :: () -- TODO Repsonder
   } deriving (Eq, Show, Read)
 
+-- Prepared jQuery outsite source
 jQueryW :: Widget
 jQueryW = addScriptRemote "https://code.jquery.com/jquery-3.2.1.min.js"
 
@@ -123,14 +126,60 @@ getWeChatOpenIDRedirectR = do
   HsacnuLockControl {..} <- getYesod
   urlRender <- getUrlRender
   let encoded = URIE.encode $ ST.unpack $ urlRender WeChatOpenIDCallbackR
+  -- FIXME Maybe use getUrlRenderParams instead of this Shakespearean Template for URL generation?
+  -- F**k you WeChat, why strong regex matching?
   redirect ([st|
     https://open.weixin.qq.com/connect/oauth2/authorize?appid=#{wcAppId}&redirect_uri=#{encoded}&response_type=code&scope=snsapi_userinfo#wechat_redirect
   |])
 
 getWeChatOpenIDCallbackR :: Handler Html
 getWeChatOpenIDCallbackR = defaultLayout $ do
-  setTitle "HsacnuLockControl - Logic Callback"
-  toWidget [hamlet|Callback!|]
+  wcOpenIDCode <- lookupGetParam "code"
+  wcCallbackState <- lookupGetParam "state"
+  setTitle "HsacnuLockControl - Login Callback"
+  if wcOpenIDCode == Nothing then
+    -- Error message placeholder
+    toWidget [hamlet|
+      <h1>Authorization failed!
+      <p>
+        The cause of this failure is WeChat Open ID Platform, and both of the service provider and the developer has nothing to do with it.
+      <p>
+        Following contents are debug-only, thus it may contain the critical personal information about you and your WeChat account.
+        For this reason, we suggest you to ignore this message and try again later if you are not one of our technician.
+        You may also send a email to our developer, but be reminded that you should wipe out your personal information first.
+        <font color="red">You've been warned.
+      <p>
+        The url requesting this page should have the scheme:
+        <br>
+        redirect_uri?code=CODE&state=STATE
+        <br>
+        But clearly the system didn't receive the get parameter named "code".
+        The full redirect uri is:
+        <br>
+        @{WeChatOpenIDCallbackR}
+      <p>
+        We apologize for this interruption, please proceed.
+        Yutong Zhang
+    |]
+  else
+    toWidget [hamlet|
+      <h1>Incomplete functionality!
+      <p>TODO Gather information from the API and the snsapi_code, and then write to the persistent storage.
+      <p>
+        Debug info:
+        <br>
+        snsapi_callback_code = #
+        $maybe code <- wcOpenIDCode
+          #{code}
+        $nothing
+          Nothing
+        <br>
+        snsapi_callback_state = #
+        $maybe state <- wcCallbackState
+          #{state}
+        $nothing
+          Nothing
+    |]
 
 -- Default web-server port, you may modify it if you want to
 defaultPort :: Int
@@ -139,6 +188,7 @@ defaultPort = 3000
 -- Use this function to extract port, wcAppId, db url, db username, db password from
 -- command line interface arguments.
 -- The function may fail so you may want to use a try or a handle
+-- TODO Rewrite this with YAML config file!
 cliArgConf :: [String] -> Maybe HsacnuLockControl
 cliArgConf [portRaw, wcAppId, dbUrl, dbUser, dbPswd] =
   port >>= (\port -> Just HsacnuLockControl {
