@@ -35,6 +35,8 @@
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DoAndIfThenElse #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE EmptyDataDecls #-}
 
 module Main where
 
