@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module SexEnum where
 
 import Database.Persist.TH

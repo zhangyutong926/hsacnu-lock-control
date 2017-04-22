@@ -5,19 +5,33 @@ build-type:         Simple
 
 executable          HsacnuLockControl
   main-is:          Main.hs
-  add-source:       SexEnum.hs
+  hs-source-dirs:   .
 
   ghc-options:      -Wall -fwarn-tabs -O2
 
-  build-depends:  base
-                , text
-                , yesod-core
-                , shakespeare
-                , blaze-html
-                , persistent
-                , persistent-sqlite
-                , persistent-template
-                , uri-encode
---                , lens
+  build-depends:    base
+                  , text
+                  , yesod-core
+                  , shakespeare
+                  , blaze-html
+                  , persistent
+                  , persistent-sqlite
+                  , persistent-template
+                  , uri-encode
+                  , aeson
+                  , lens
 
-  ghc-options:    -threaded -O2 -rtsopts -with-rtsopts=-N -Wunused-imports -Wname-shadowing
+  extensions:       OverloadedStrings
+                  , QuasiQuotes
+                  , TemplateHaskell
+                  , TypeFamilies
+                  , ScopedTypeVariables
+                  , RankNTypes
+                  , RecordWildCards
+                  , DoAndIfThenElse
+                  , FlexibleInstances
+                  , GADTs
+                  , EmptyDataDecls
+                  , GeneralizedNewtypeDeriving
+
+  ghc-options:      -threaded -O2 -rtsopts -with-rtsopts=-N

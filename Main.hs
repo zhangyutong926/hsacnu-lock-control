@@ -26,19 +26,6 @@
 -- Mar. 22nd, 2017 C.E.
 -}
 
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE DoAndIfThenElse #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE EmptyDataDecls #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
-
 module Main where
 
 import qualified Network.URI.Encode as URIE
