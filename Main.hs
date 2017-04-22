@@ -71,15 +71,6 @@ data HsacnuLockControl =
     deriving (Eq, Show, Read) -- | HsacnuLockControl
 -- $(makeLenses ''HsacnuLockControlWithConfig)
 
-$(mkYesod "HsacnuLockControl" [parseRoutes|
-/ HomeR GET
-/wechat_openid_redirect WeChatOpenIDRedirectR GET
-/wechat_openid_callback WeChatOpenIDCallbackR GET
-|])
-
-instance Yesod HsacnuLockControl where
-  approot = ApprootStatic "http://localhost:3000" -- For debug only
-
 {-
 -- UserInfo Primary ADT
 data UserInfo =
@@ -112,6 +103,15 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     Primary openId
     deriving Show Read Eq
 |]
+
+mkYesod "HsacnuLockControl" [parseRoutes|
+/ HomeR GET
+/wechat_openid_redirect WeChatOpenIDRedirectR GET
+/wechat_openid_callback WeChatOpenIDCallbackR GET
+|]
+
+instance Yesod HsacnuLockControl where
+  approot = ApprootStatic "http://localhost:3000" -- For debug only
 
 -- Prepared jQuery outsite source
 jQueryW :: Widget
