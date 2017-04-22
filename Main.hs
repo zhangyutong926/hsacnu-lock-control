@@ -34,6 +34,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE DoAndIfThenElse #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Main where
 
@@ -48,6 +49,11 @@ import Yesod.Core
 import Text.Hamlet
 import Text.Shakespeare.Text
 import Text.Blaze.Html.Renderer.String
+import Database.Persist
+import Database.Persist.Sqlite
+import Database.Persist.TH
+
+import SexEnum
 
 -- Application routing/database/resource configuration, no modification unless
 -- you are extremely certain what they're and what are their function.
@@ -71,9 +77,6 @@ $(mkYesod "HsacnuLockControl" [parseRoutes|
 instance Yesod HsacnuLockControl where
   approot = ApprootStatic "http://localhost:3000" -- For debug only
 
--- UserInfo Enum Sex
-data Sex = Male | Female | Unspecified deriving (Eq, Enum, Show, Read)
-
 -- UserInfo Primary ADT
 data UserInfo =
   RequesterUser {
@@ -89,6 +92,21 @@ data UserInfo =
   } | ResponderUser {
     placeholder :: () -- TODO Repsonder
   } deriving (Eq, Show, Read)
+
+share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
+  UserInfo
+    openId String
+    nickName String
+    sex Sex Maybe
+    province String Maybe
+    city String Maybe
+    country String Maybe
+    headImageUrl String Maybe
+    privilege String Maybe
+    unionId String
+    Primary openId
+    deriving Show Read Eq
+|]
 
 -- Prepared jQuery outsite source
 jQueryW :: Widget

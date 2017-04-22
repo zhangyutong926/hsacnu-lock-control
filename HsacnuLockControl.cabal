@@ -5,6 +5,7 @@ build-type:         Simple
 
 executable          HsacnuLockControl
   main-is:          Main.hs
+  add-source:       SexEnum.hs
 
   ghc-options:      -Wall -fwarn-tabs -O2
 
