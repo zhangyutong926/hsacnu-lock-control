@@ -77,6 +77,7 @@ $(mkYesod "HsacnuLockControl" [parseRoutes|
 instance Yesod HsacnuLockControl where
   approot = ApprootStatic "http://localhost:3000" -- For debug only
 
+{-
 -- UserInfo Primary ADT
 data UserInfo =
   RequesterUser {
@@ -92,6 +93,7 @@ data UserInfo =
   } | ResponderUser {
     placeholder :: () -- TODO Repsonder
   } deriving (Eq, Show, Read)
+-}
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
   UserInfo
