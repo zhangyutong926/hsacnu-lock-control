@@ -39,7 +39,7 @@ mkYesod "HsacnuLockControl" [parseRoutes|
 -}
 
 instance Yesod HsacnuLockControl where
-  approot = ApprootStatic "http://localhost:3000" -- For debug only
+  approot = ApprootMaster $ ST.pack . servDomain
 
 -- Prepared jQuery outsite source
 jQueryW :: Widget
