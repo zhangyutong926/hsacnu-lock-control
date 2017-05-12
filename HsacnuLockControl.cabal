@@ -20,6 +20,7 @@ executable          HsacnuLockControl
                   , uri-encode
                   , aeson
                   , lens
+                  , bytestring
 
   extensions:       OverloadedStrings
                   , QuasiQuotes

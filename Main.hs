@@ -1,39 +1,18 @@
 {-
--- Greetings, Jingze Zhang.
--- This is a message from the author Yutong Zhang (Evrika Logismos Lamda).
--- I would like to inform you about the code and its usage.
--- Please read my code carefully and find out the corrent position to plug-in your configuration data.
--- Just for your information, whatever platform you're using, you'll need to install a tool called HaskellStack to build the program.
---
--- You may already noticed, unlike other web server-side softwares always running in a container like Tomcat or Jetty, this program is independently compiled and will be run directly on the native OS environment.
--- And this feature is important for the performance of the server-side program.
--- The program has to be built in every OS platform you want it to run on.
---
--- Here's the procedure you may require to in order to build the correct distribution binary.
--- 1. Install the Haskell Stack Build Tool from https://docs.haskellstack.org/en/stable/README/
--- 2. Navigate inside the project directory
--- 3. Use command stack build
--- 4. Find the location of target binary from the Stack's build log, it will be like:
---    "/home/zhangyutong926/Workspace/YesodDemo/HsacnuLockControl/.stack-work/install/x86_64-linux/lts-8.5/8.0.2/bin"
---    And it directly follows a log:
---    "Installing executable(s) in"
--- 5. Use your shell command to run it.
--- Here's another special notification: you will terminate neither the process nor the terminal you were using to run the program, because by doing that, you will cause a service termination.
---
--- All question can be sent to my email, which is yotochang@gmail.com, but spam is not welcomed and will be blacklisted.
---
--- Yoto Chang (Evrika Logismos Lamda)
--- Mar. 22nd, 2017 C.E.
+-- Project Hsacnu Lock Control
+-- Author: Yutong Zhang
 -}
 
 module Main where
 
 import qualified Network.URI.Encode as URIE
 import qualified Data.Text as ST
+import qualified Data.ByteString.Lazy as BS
 
 import System.Environment (getArgs)
 import System.Exit (exitWith, ExitCode(ExitFailure))
 import Text.Read (readMaybe)
+import Data.Aeson (decode, encode, eitherDecode, FromJSON, ToJSON, (.:))
 
 import Yesod.Core
 import Text.Hamlet
@@ -43,59 +22,21 @@ import Database.Persist
 import Database.Persist.Sqlite
 import Database.Persist.TH
 
-import SexEnum
-
--- Application routing/database/resource configuration, no modification unless
--- you are extremely certain what they're and what are their function.
-data HsacnuLockControl =
-  HsacnuLockControl {
-    servPort :: Int,
-    wcAppId :: String,
-    dbUrl :: String,
-    dbUser :: String,
-    dbPswd :: String
-  } | HsacnuLockControlConfFail
-    deriving (Eq, Show, Read) -- | HsacnuLockControl
--- $(makeLenses ''HsacnuLockControlWithConfig)
-
-{-
--- UserInfo Primary ADT
-data UserInfo =
-  RequesterUser {
-    openId :: String,
-    nickName :: String,
-    sex :: Sex,
-    province :: String,
-    city :: String,
-    country :: String,
-    headImageUrl :: String,
-    privilege :: [String],
-    unionId :: String
-  } | ResponderUser {
-    placeholder :: () -- TODO Repsonder
-  } deriving (Eq, Show, Read)
--}
-
-share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
-  UserInfo
-    openId String
-    nickName String
-    sex Sex Maybe
-    province String Maybe
-    city String Maybe
-    country String Maybe
-    headImageUrl String Maybe
-    privilege String Maybe
-    unionId String
-    Primary openId
-    deriving Show Read Eq
-|]
+import DataTypes
 
 mkYesod "HsacnuLockControl" [parseRoutes|
 / HomeR GET
 /wechat_openid_redirect WeChatOpenIDRedirectR GET
 /wechat_openid_callback WeChatOpenIDCallbackR GET
+
 |]
+
+{-
+/lock_pending LockPendingR GET
+/refresh_lock_status RefreshLockStatus GET
+/responder_respond ResponderRespondR GET
+/responce_submit ResponceSubmitR GET
+-}
 
 instance Yesod HsacnuLockControl where
   approot = ApprootStatic "http://localhost:3000" -- For debug only
@@ -191,49 +132,29 @@ getWeChatOpenIDCallbackR = defaultLayout $ do
           Nothing
     |]
 
--- Default web-server port, you may modify it if you want to
-defaultPort :: Int
-defaultPort = 3000
+parseJsonConf :: BS.ByteString -> HsacnuLockControl
+parseJsonConf src = case eitherDecode src of
+  Right d -> d
+  Left e -> error $ "ERROR: Failure during parsing the JSON config file, details in: \n" ++ e
 
--- Use this function to extract port, wcAppId, db url, db username, db password from
--- command line interface arguments.
--- The function may fail so you may want to use a try or a handle
--- TODO Rewrite this with YAML config file!
-cliArgConf :: [String] -> Maybe HsacnuLockControl
-cliArgConf [portRaw, wcAppId, dbUrl, dbUser, dbPswd] =
-  port >>= (\port -> Just HsacnuLockControl {
-    servPort = port,
-    wcAppId = wcAppId,
-    dbUrl = dbUrl,
-    dbUser = dbUser,
-    dbPswd = dbPswd
-  })
-  where
-    port :: Maybe Int
-    port = readMaybe portRaw
-cliArgConf _ = Nothing
+jsonConfFileName :: FilePath
+jsonConfFileName = "config.json"
 
--- Entry function of the application.
--- Print something irrelevant and boring >>
--- Load the port number >>
--- Load some settings files >>
--- Initiate the Warp Engine
+readJsonFileAndParse :: IO HsacnuLockControl
+readJsonFileAndParse = do
+  fileContent <- BS.readFile jsonConfFileName
+  return $ parseJsonConf fileContent
+
 main :: IO ()
 main = do
   putStrLn "HsacnuLockControl Project Server-Side Software Version 1.0, initiating..."
   putStrLn "Author: Evrika Logismos Lamda"
   putStrLn "Release Date: Stardate -94822.0"
-  putStrLn "Source Code License: GNU_GPL License Version 3.0"
+  putStrLn "Source Code License: Public Domain License CC0"
 
-  args <- getArgs
-  let parsedConf = (cliArgConf args)
-  appInst <- if parsedConf == Nothing
-    then do
-      putStrLn "Incorrect argument number or type, server terminating..."
-      exitWith $ ExitFailure 1
-      return undefined
-    else
-      return ((\(Just a) -> a) parsedConf)
+  appInst <- readJsonFileAndParse
 
+  print appInst -- FIXME Debug Only
+  
   putStrLn "Haskell Yesod Warp Web Engine, initiating..."
   warp (servPort appInst) appInst

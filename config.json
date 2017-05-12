@@ -1,11 +1,15 @@
 {
-    "port": 3000,
+    "servPort": 3000,
+    "servDomain": "http://localhost:3000",
     "wcAppId": "a",
     "dbName": ":memory:",
-    "dbPoolConnNum": 10,
+    "dbConnPoolNum": 10,
+    "templateMsgId": "",
     "responders": [
-        {
-	    ""
+	{
+	    "entranceName": "Prof. Anqi Zhu's Office",
+	    "userName": "Prof. Anqi Zhu",
+	    "userOpenId": "b"
 	}
     ]
 }
