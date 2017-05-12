@@ -7,10 +7,10 @@
     "dbConnPoolNum": 10,
     "templateMsgId": "",
     "responders": [
-	{
-	    "entranceName": "Prof. Anqi Zhu's Office",
-	    "userName": "Prof. Anqi Zhu",
-	    "userOpenId": "c"
-	}
+        {
+            "entranceName": "Prof. Anqi Zhu's Office",
+            "userName": "Prof. Anqi Zhu",
+            "userOpenId": "c"
+        }
     ]
 }
