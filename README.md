@@ -8,4 +8,7 @@ Build command:
 stack build
 
 Usage:  
-./HsacnuLockControl {server port number} {WeChat appId} {database url} {database username} {database password}
+./HsacnuLockControl
+
+Don't forget the config file "config.json".
+Example file included.
