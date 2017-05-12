@@ -13,8 +13,7 @@ data ResponderInfo =
     entranceName :: String,
     userName :: String,
     userOpenId :: String
-  } | ResponderInfoParseFailure
-    deriving (Eq, Show, Read)
+  } deriving (Eq, Show, Read)
 
 instance FromJSON ResponderInfo where
   parseJSON (Object v) = ResponderInfo <$>
@@ -25,28 +24,46 @@ instance FromJSON ResponderInfo where
 
 -- Application routing/database/resource configuration, no modification unless
 -- you are extremely certain what they're and what are their function.
-data HsacnuLockControl =
-  HsacnuLockControl {
+data HsacnuLockControlConf =
+  HsacnuLockControlConf {
     servPort :: Int,
     servDomain :: String,
     wcAppId :: String,
+    wcAppSecret :: String,
     dbName :: String,
     dbConnPoolNum :: Int,
     templateMsgId :: String,
     responders :: [ResponderInfo]
-  } | HsacnuLockControlParseFailure
-    deriving (Eq, Show, Read) -- | HsacnuLockControl
--- $(makeLenses ''HsacnuLockControlWithConfig)
+  } deriving (Eq, Show, Read)
 
-instance FromJSON HsacnuLockControl where
-  parseJSON (Object v) = HsacnuLockControl <$>
+data HsacnuLockControl =
+  HsacnuLockControl {
+    appConf :: HsacnuLockControlConf,
+    connPool :: ConnectionPool
+  }
+
+instance FromJSON HsacnuLockControlConf where
+  parseJSON (Object v) = HsacnuLockControlConf <$>
     v .: "servPort" <*>
     v .: "servDomain" <*>
     v .: "wcAppId" <*>
+    v .: "wcAppSecret" <*>
     v .: "dbName" <*>
     v .: "dbConnPoolNum" <*>
     v .: "templateMsgId" <*>
     v .: "responders"
+  parseJSON _ = mempty
+
+data GetAccessTokenResponse =
+  GetAccessTokenResponse {
+    accessToken :: String,
+    openId :: String
+  } deriving (Eq, Show, Read)
+
+instance FromJSON GetAccessTokenResponse where
+  parseJSON (Object v) = GetAccessTokenResponse <$>
+    v .: "access_token" <*>
+    v .: "openId"
   parseJSON _ = mempty
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
@@ -63,22 +80,3 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     Primary openId
     deriving Show Read Eq
 |]
-
-{-
--- UserInfo Primary ADT
-data UserInfo =
-  RequesterUser {
-    openId :: String,
-    nickName :: String,
-    sex :: Sex,
-    province :: String,
-    city :: String,
-    country :: String,
-    headImageUrl :: String,
-    privilege :: [String],
-    unionId :: String
-  } | ResponderUser {
-    placeholder :: () -- TODO Repsonder
-  } deriving (Eq, Show, Read)
--}
-

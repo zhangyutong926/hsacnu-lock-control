@@ -9,18 +9,19 @@ import qualified Network.URI.Encode as URIE
 import qualified Data.Text as ST
 import qualified Data.ByteString.Lazy as BS
 
-import System.Environment (getArgs)
-import System.Exit (exitWith, ExitCode(ExitFailure))
 import Text.Read (readMaybe)
 import Data.Aeson (decode, encode, eitherDecode, FromJSON, ToJSON, (.:))
+import Control.Monad.Logger (runNoLoggingT)
 
 import Yesod.Core
+import Yesod.Persist.Core
 import Text.Hamlet
 import Text.Shakespeare.Text
 import Text.Blaze.Html.Renderer.String
 import Database.Persist
 import Database.Persist.Sqlite
 import Database.Persist.TH
+import Network.HTTP.Simple
 
 import DataTypes
 
@@ -39,7 +40,7 @@ mkYesod "HsacnuLockControl" [parseRoutes|
 -}
 
 instance Yesod HsacnuLockControl where
-  approot = ApprootMaster $ ST.pack . servDomain
+  approot = ApprootMaster $ ST.pack . servDomain . appConf
 
 -- Prepared jQuery outsite source
 jQueryW :: Widget
@@ -74,21 +75,22 @@ getHomeR = defaultLayout $ do
 -- Redirect the user to the WeChat OpenID Login Page
 getWeChatOpenIDRedirectR :: Handler ()
 getWeChatOpenIDRedirectR = do
-  HsacnuLockControl {..} <- getYesod
+  app <- getYesod
+  let conf = appConf app
   urlRender <- getUrlRender
   let encoded = URIE.encode $ ST.unpack $ urlRender WeChatOpenIDCallbackR
   -- FIXME Maybe use getUrlRenderParams instead of this Shakespearean Template for URL generation?
   -- F**k you WeChat, why strong regex matching?
   redirect ([st|
-    https://open.weixin.qq.com/connect/oauth2/authorize?appid=#{wcAppId}&redirect_uri=#{encoded}&response_type=code&scope=snsapi_userinfo#wechat_redirect
+    https://open.weixin.qq.com/connect/oauth2/authorize?appid=#{wcAppId conf}&redirect_uri=#{encoded}&response_type=code&scope=snsapi_userinfo#wechat_redirect
   |])
 
 getWeChatOpenIDCallbackR :: Handler Html
 getWeChatOpenIDCallbackR = defaultLayout $ do
-  wcOpenIDCode <- lookupGetParam "code"
+  wcOpenIdCode <- lookupGetParam "code"
   wcCallbackState <- lookupGetParam "state"
   setTitle "HsacnuLockControl - Login Callback"
-  if wcOpenIDCode == Nothing then
+  if wcOpenIdCode == Nothing then
     -- Error message placeholder
     toWidget [hamlet|
       <h1>Authorization failed!
@@ -112,27 +114,16 @@ getWeChatOpenIDCallbackR = defaultLayout $ do
         We apologize for this interruption, please proceed.
         Yutong Zhang
     |]
-  else
-    toWidget [hamlet|
-      <h1>Incomplete functionality!
-      <p>TODO Gather information from the API and the snsapi_code, and then write to the persistent storage.
-      <p>
-        Debug info:
-        <br>
-        snsapi_callback_code = #
-        $maybe code <- wcOpenIDCode
-          #{code}
-        $nothing
-          Nothing
-        <br>
-        snsapi_callback_state = #
-        $maybe state <- wcCallbackState
-          #{state}
-        $nothing
-          Nothing
-    |]
+  else do
+    app <- getYesod
+    let HsacnuLockControlConf {..} = appConf app
+    let Just code = wcOpenIdCode
+    let target = [st|https://api.weixin.qq.com/sns/oauth2/access_token?appid=#{wcAppId}&secret=#{wcAppSecret}&code=#{code}&grant_type=authorization_code|]
+    request <- parseRequest $ ST.unpack target
+    (response :: Response GetAccessTokenResponse) <- httpJSON request
+    toWidget [hamlet|Nothing|]
 
-parseJsonConf :: BS.ByteString -> HsacnuLockControl
+parseJsonConf :: BS.ByteString -> HsacnuLockControlConf
 parseJsonConf src = case eitherDecode src of
   Right d -> d
   Left e -> error $ "ERROR: Failure during parsing the JSON config file, details in: \n" ++ e
@@ -140,21 +131,28 @@ parseJsonConf src = case eitherDecode src of
 jsonConfFileName :: FilePath
 jsonConfFileName = "config.json"
 
-readJsonFileAndParse :: IO HsacnuLockControl
+readJsonFileAndParse :: IO HsacnuLockControlConf
 readJsonFileAndParse = do
   fileContent <- BS.readFile jsonConfFileName
   return $ parseJsonConf fileContent
 
+instance YesodPersist HsacnuLockControl where
+  type YesodPersistBackend HsacnuLockControl = SqlBackend
+
+  runDB action = do
+    HsacnuLockControl {..} <- getYesod
+    runSqlPool action connPool
+
 main :: IO ()
 main = do
   putStrLn "HsacnuLockControl Project Server-Side Software Version 1.0, initiating..."
-  putStrLn "Author: Evrika Logismos Lamda"
-  putStrLn "Release Date: Stardate -94822.0"
   putStrLn "Source Code License: Public Domain License CC0"
 
-  appInst <- readJsonFileAndParse
-
-  print appInst -- FIXME Debug Only
+  conf <- readJsonFileAndParse
+  print conf -- FIXME Debug Only
+  pool <- runNoLoggingT $ createSqlitePool "lock.db3" 10
+  runSqlPool (runMigration migrateAll) pool
+  let appInst = HsacnuLockControl conf pool
   
   putStrLn "Haskell Yesod Warp Web Engine, initiating..."
-  warp (servPort appInst) appInst
+  warp (servPort conf) appInst

@@ -2,6 +2,7 @@
     "servPort": 3000,
     "servDomain": "http://localhost:3000",
     "wcAppId": "a",
+    "wcAppSecret": "b",
     "dbName": ":memory:",
     "dbConnPoolNum": 10,
     "templateMsgId": "",
@@ -9,7 +10,7 @@
 	{
 	    "entranceName": "Prof. Anqi Zhu's Office",
 	    "userName": "Prof. Anqi Zhu",
-	    "userOpenId": "b"
+	    "userOpenId": "c"
 	}
     ]
 }

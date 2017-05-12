@@ -12,6 +12,7 @@ executable          HsacnuLockControl
   build-depends:    base
                   , text
                   , yesod-core
+                  , yesod-persistent
                   , shakespeare
                   , blaze-html
                   , persistent
@@ -21,6 +22,9 @@ executable          HsacnuLockControl
                   , aeson
                   , lens
                   , bytestring
+                  , resourcet
+                  , monad-logger
+                  , http-conduit
 
   extensions:       OverloadedStrings
                   , QuasiQuotes
