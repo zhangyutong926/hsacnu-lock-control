@@ -6,8 +6,6 @@ import Database.Persist.TH
 
 import Data.Aeson
 
-import SexEnum
-
 data ResponderInfo =
   ResponderInfo {
     entranceName :: String,
