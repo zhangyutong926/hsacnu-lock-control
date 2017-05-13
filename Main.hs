@@ -9,6 +9,7 @@ import qualified Network.URI.Encode as URIE
 import qualified Data.Text as ST
 import qualified Data.ByteString.Lazy as BS
 
+import Data.Maybe (fromJust)
 import Text.Read (readMaybe)
 import Data.Aeson (decode, encode, eitherDecode, FromJSON, ToJSON, (.:))
 import Control.Monad.Logger (runNoLoggingT)
@@ -87,41 +88,15 @@ getWeChatOpenIDRedirectR = do
 
 getWeChatOpenIDCallbackR :: Handler Html
 getWeChatOpenIDCallbackR = defaultLayout $ do
-  wcOpenIdCode <- lookupGetParam "code"
-  wcCallbackState <- lookupGetParam "state"
   setTitle "HsacnuLockControl - Login Callback"
-  if wcOpenIdCode == Nothing then
-    -- Error message placeholder
-    toWidget [hamlet|
-      <h1>Authorization failed!
-      <p>
-        The cause of this failure is WeChat Open ID Platform, and both of the service provider and the developer has nothing to do with it.
-      <p>
-        Following contents are debug-only, thus it may contain the critical personal information about you and your WeChat account.
-        For this reason, we suggest you to ignore this message and try again later if you are not one of our technician.
-        You may also send a email to our developer, but be reminded that you should wipe out your personal information first.
-        <font color="red">You've been warned.
-      <p>
-        The url requesting this page should have the scheme:
-        <br>
-        redirect_uri?code=CODE&state=STATE
-        <br>
-        But clearly the system didn't receive the get parameter named "code".
-        The full redirect uri is:
-        <br>
-        @{WeChatOpenIDCallbackR}
-      <p>
-        We apologize for this interruption, please proceed.
-        Yutong Zhang
-    |]
-  else do
-    app <- getYesod
-    let HsacnuLockControlConf {..} = appConf app
-    let Just code = wcOpenIdCode
-    let target = [st|https://api.weixin.qq.com/sns/oauth2/access_token?appid=#{wcAppId}&secret=#{wcAppSecret}&code=#{code}&grant_type=authorization_code|]
-    request <- parseRequest $ ST.unpack target
-    (response :: Response GetAccessTokenResponse) <- httpJSON request
-    toWidget [hamlet|Nothing|]
+  wcOpenIdCode <- lookupGetParam "code"
+  let Just code = wcOpenIdCode
+  app <- getYesod
+  let HsacnuLockControlConf {..} = appConf app
+  let target = [st|https://api.weixin.qq.com/sns/oauth2/access_token?appid=#{wcAppId}&secret=#{wcAppSecret}&code=#{code}&grant_type=authorization_code|]
+  request <- parseRequest $ ST.unpack target
+  (response :: Response GetAccessTokenResponse) <- httpJSON request
+  toWidget [hamlet|Nothing|]
 
 parseJsonConf :: BS.ByteString -> HsacnuLockControlConf
 parseJsonConf src = case eitherDecode src of
