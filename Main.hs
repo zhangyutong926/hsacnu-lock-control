@@ -78,8 +78,7 @@ getWeChatOpenIDRedirectR :: Handler ()
 getWeChatOpenIDRedirectR = do
   app <- getYesod
   let conf = appConf app
-  urlRender <- getUrlRender
-  let encoded = URIE.encode $ ST.unpack $ urlRender WeChatOpenIDCallbackR
+  let encoded = URIE.encode $ callbackDomain conf
   -- FIXME Maybe use getUrlRenderParams instead of this Shakespearean Template for URL generation?
   -- F**k you WeChat, why strong regex matching?
   redirect ([st|
@@ -93,9 +92,18 @@ getWeChatOpenIDCallbackR = defaultLayout $ do
   let Just code = wcOpenIdCode
   app <- getYesod
   let HsacnuLockControlConf {..} = appConf app
-  let target = [st|https://api.weixin.qq.com/sns/oauth2/access_token?appid=#{wcAppId}&secret=#{wcAppSecret}&code=#{code}&grant_type=authorization_code|]
-  request <- parseRequest $ ST.unpack target
-  (response :: Response GetAccessTokenResponse) <- httpJSON request
+  
+  let targetAccessToken = [st|https://api.weixin.qq.com/sns/oauth2/access_token?appid=#{wcAppId}&secret=#{wcAppSecret}&code=#{code}&grant_type=authorization_code|]
+  requestAccessToken <- parseRequest $ ST.unpack targetAccessToken
+  (responseAccessToken :: Response GetAccessTokenResponse) <- httpJSON requestAccessToken
+  let accessTokenJSON = getResponseBody responseAccessToken
+  let token = accessToken accessTokenJSON
+  let userOpenId = openId accessTokenJSON
+  
+  let targetUserInfo = [st|https://api.weixin.qq.com/sns/userinfo?access_token=#{token}&openid=#{userOpenId}&lang=#{languagePreference}|]
+  requestUserInfo <- parseRequest $ ST.unpack targetUserInfo
+  -- (userInfoJSON :: ) <- 
+  
   toWidget [hamlet|Nothing|]
 
 parseJsonConf :: BS.ByteString -> HsacnuLockControlConf

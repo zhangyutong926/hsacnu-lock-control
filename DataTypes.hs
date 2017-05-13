@@ -28,12 +28,14 @@ data HsacnuLockControlConf =
   HsacnuLockControlConf {
     servPort :: Int,
     servDomain :: String,
+    callbackDomain :: String,
     wcAppId :: String,
     wcAppSecret :: String,
     dbName :: String,
     dbConnPoolNum :: Int,
     templateMsgId :: String,
-    responders :: [ResponderInfo]
+    responders :: [ResponderInfo],
+    languagePreference :: String
   } deriving (Eq, Show, Read)
 
 data HsacnuLockControl =
@@ -46,12 +48,14 @@ instance FromJSON HsacnuLockControlConf where
   parseJSON (Object v) = HsacnuLockControlConf <$>
     v .: "servPort" <*>
     v .: "servDomain" <*>
+    v .: "callbackDomain" <*>
     v .: "wcAppId" <*>
     v .: "wcAppSecret" <*>
     v .: "dbName" <*>
     v .: "dbConnPoolNum" <*>
     v .: "templateMsgId" <*>
-    v .: "responders"
+    v .: "responders" <*>
+    v .: "languagePreference"
   parseJSON _ = mempty
 
 data GetAccessTokenResponse =
@@ -70,13 +74,26 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
   UserInfo
     openId String
     nickName String
-    sex Sex Maybe
-    province String Maybe
-    city String Maybe
-    country String Maybe
-    headImageUrl String Maybe
-    privilege String Maybe
+    sex String
+    province String
+    city String
+    country String
+    headImageUrl String
+    privilege [String]
     unionId String
     Primary openId
     deriving Show Read Eq
 |]
+
+instance FromJSON UserInfo where
+  parseJSON (Object v) = UserInfo <$>
+    v .: "openid" <*>
+    v .: "nickname" <*>
+    v .: "sex" <*>
+    v .: "province" <*>
+    v .: "city" <*>
+    v .: "country" <*>
+    v .: "headimgurl" <*>
+    v .: "privilege" <*>
+    v .: "unionid"
+  parseJSON _ = mempty

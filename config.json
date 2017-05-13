@@ -1,6 +1,7 @@
 {
     "servPort": 3000,
     "servDomain": "http://localhost:3000",
+    "callbackDomain": "http://localhost:3000"
     "wcAppId": "a",
     "wcAppSecret": "b",
     "dbName": ":memory:",
@@ -12,5 +13,6 @@
             "userName": "Prof. Anqi Zhu",
             "userOpenId": "c"
         }
-    ]
+    ],
+    "languagePreference": "en"
 }
