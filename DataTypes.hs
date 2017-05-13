@@ -8,6 +8,7 @@ import Data.Aeson
 
 data ResponderInfo =
   ResponderInfo {
+    responderId :: Int,
     entranceName :: String,
     userName :: String,
     userOpenId :: String
@@ -15,6 +16,7 @@ data ResponderInfo =
 
 instance FromJSON ResponderInfo where
   parseJSON (Object v) = ResponderInfo <$>
+    v .: "responderId" <*>
     v .: "entranceName" <*>
     v .: "userName" <*>
     v .: "userOpenId"
@@ -33,14 +35,9 @@ data HsacnuLockControlConf =
     dbConnPoolNum :: Int,
     templateMsgId :: String,
     responders :: [ResponderInfo],
-    languagePreference :: String
+    languagePreference :: String,
+    siteName :: String
   } deriving (Eq, Show, Read)
-
-data HsacnuLockControl =
-  HsacnuLockControl {
-    appConf :: HsacnuLockControlConf,
-    connPool :: ConnectionPool
-  }
 
 instance FromJSON HsacnuLockControlConf where
   parseJSON (Object v) = HsacnuLockControlConf <$>
@@ -53,8 +50,15 @@ instance FromJSON HsacnuLockControlConf where
     v .: "dbConnPoolNum" <*>
     v .: "templateMsgId" <*>
     v .: "responders" <*>
-    v .: "languagePreference"
+    v .: "languagePreference" <*>
+    v .: "siteName"
   parseJSON _ = mempty
+
+data HsacnuLockControl =
+  HsacnuLockControl {
+    appConf :: HsacnuLockControlConf,
+    connPool :: ConnectionPool
+  }
 
 data GetAccessTokenResponse =
   GetAccessTokenResponse {

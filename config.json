@@ -9,10 +9,12 @@
     "templateMsgId": "",
     "responders": [
         {
+	    "responderId": 0
             "entranceName": "Prof. Anqi Zhu's Office",
             "userName": "Prof. Anqi Zhu",
             "userOpenId": "c"
         }
     ],
     "languagePreference": "en"
+    "siteName": "Hsacnu Lock Control Project Debug Site"
 }

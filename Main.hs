@@ -13,6 +13,8 @@ import Data.Maybe (fromJust)
 import Text.Read (readMaybe)
 import Data.Aeson (decode, encode, eitherDecode, FromJSON, ToJSON, (.:))
 import Control.Monad.Logger (runNoLoggingT)
+import Data.String (fromString)
+import Text.Blaze.Html (toHtml)
 
 import Yesod.Core
 import Yesod.Persist.Core
@@ -30,7 +32,7 @@ mkYesod "HsacnuLockControl" [parseRoutes|
 / HomeR GET
 /wechat_openid_redirect WeChatOpenIDRedirectR GET
 /wechat_openid_callback WeChatOpenIDCallbackR GET
-
+/submit_request_and_wait SubmitRequestAndWaitR GET
 |]
 
 {-
@@ -50,14 +52,11 @@ jQueryW = addScriptRemote "https://code.jquery.com/jquery-3.2.1.min.js"
 -- Handler is the controller of web application (controller in MVC)
 getHomeR :: Handler Html
 getHomeR = defaultLayout $ do
-  setTitle "HsacnuLockControl - Home Page"
+  app <- getYesod
+  let HsacnuLockControlConf {..} = appConf app
+  setTitle $ toHtml $ siteName ++ " - Home Page"
   toWidget [hamlet|
-    <h1>HsacnuLockControl - Home Page
-    <p>
-      Welcome to the Hsacnu Lock Control. #
-      This system is built by Evrika Logismos Lamda based on Haskell Yesod Web Framework. #
-      The owner of the system is Jingze Zhang, the commissioner of the project #
-      The purpose of this system is to help you open the lock of valuable properties in the campus. #
+    <h1>#{siteName} - Home Page
     <p>
       Now you're going to use your WeChat OpenID so that we can identify yourself. #
       And after that, you'll receive some options that was reserved in the database. #
@@ -79,32 +78,42 @@ getWeChatOpenIDRedirectR = do
   app <- getYesod
   let conf = appConf app
   let encoded = URIE.encode $ callbackDomain conf
-  -- FIXME Maybe use getUrlRenderParams instead of this Shakespearean Template for URL generation?
-  -- F**k you WeChat, why strong regex matching?
   redirect ([st|
     https://open.weixin.qq.com/connect/oauth2/authorize?appid=#{wcAppId conf}&redirect_uri=#{encoded}&response_type=code&scope=snsapi_userinfo#wechat_redirect
   |])
 
 getWeChatOpenIDCallbackR :: Handler Html
-getWeChatOpenIDCallbackR = defaultLayout $ do
-  setTitle "HsacnuLockControl - Login Callback"
+getWeChatOpenIDCallbackR = do
   wcOpenIdCode <- lookupGetParam "code"
   let Just code = wcOpenIdCode
   app <- getYesod
   let HsacnuLockControlConf {..} = appConf app
-  
   let targetAccessToken = [st|https://api.weixin.qq.com/sns/oauth2/access_token?appid=#{wcAppId}&secret=#{wcAppSecret}&code=#{code}&grant_type=authorization_code|]
   requestAccessToken <- parseRequest $ ST.unpack targetAccessToken
   (responseAccessToken :: Response GetAccessTokenResponse) <- httpJSON requestAccessToken
   let accessTokenJSON = getResponseBody responseAccessToken
   let token = accessToken accessTokenJSON
   let userOpenId = openId accessTokenJSON
-  
   let targetUserInfo = [st|https://api.weixin.qq.com/sns/userinfo?access_token=#{token}&openid=#{userOpenId}&lang=#{languagePreference}|]
   requestUserInfo <- parseRequest $ ST.unpack targetUserInfo
-  -- (userInfoJSON :: ) <- 
-  
-  toWidget [hamlet|Nothing|]
+  (responseUserInfo :: Response UserInfo) <- httpJSON requestUserInfo
+  let userInfo = getResponseBody responseUserInfo
+  let UserInfo {..} = userInfo
+  userId <- runDB $ insert userInfo
+  defaultLayout $ do
+    setTitle $ toHtml $ siteName ++ " - Login Callback"
+    toWidget [hamlet|
+      <h1>Login successful!
+      <p>
+        This webpage will present you several options, and you will choose the one which is representing the door lock you're willing to request for unlock from them. #
+      <p>
+        <ul>
+          $forall ResponderInfo id entrance name wcOpenId <- responders
+            <li><a href=@?{(SubmitRequestAndWaitR, [("userId", ST.pack (show userId)),("responderId", ST.pack (show id))])}>#{entrance}
+    |]
+
+getSubmitRequestAndWaitR :: Handler Html
+getSubmitRequestAndWaitR = defaultLayout $ toWidget [hamlet|Nothing here!|]
 
 parseJsonConf :: BS.ByteString -> HsacnuLockControlConf
 parseJsonConf src = case eitherDecode src of

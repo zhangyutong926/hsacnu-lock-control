@@ -11,4 +11,4 @@ Usage:
 ./HsacnuLockControl
 
 Don't forget the config file "config.json".
-Example file included.
+An example file was included.
