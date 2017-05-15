@@ -92,11 +92,11 @@ getWeChatOpenIDCallbackR = do
   let HsacnuLockControlConf {..} = appConf app
   let targetAccessToken = [st|https://api.weixin.qq.com/sns/oauth2/access_token?appid=#{wcAppId}&secret=#{wcAppSecret}&code=#{code}&grant_type=authorization_code|]
   requestAccessToken <- parseRequest $ ST.unpack targetAccessToken
-  responseAccessTokenL8 <- httpLBS requestAccessToken
-  let accessTokenResponseBody = getResponseBody responseAccessTokenL8
-  lift $ print accessTokenResponseBody
-  -- (responseAccessToken :: Response GetAccessTokenResponse) <- httpJSON requestAccessToken
-  {- let accessTokenJSON = getResponseBody responseAccessToken
+  -- responseAccessTokenL8 <- httpLBS requestAccessToken
+  -- let accessTokenResponseBody = getResponseBody responseAccessTokenL8
+  -- lift $ print accessTokenResponseBody
+  (responseAccessToken :: Response GetAccessTokenResponse) <- httpJSON requestAccessToken
+  let accessTokenJSON = getResponseBody responseAccessToken
   let token = accessToken accessTokenJSON
   let userOpenId = openId accessTokenJSON
   let targetUserInfo = [st|https://api.weixin.qq.com/sns/userinfo?access_token=#{token}&openid=#{userOpenId}&lang=#{languagePreference}|]
@@ -115,13 +115,13 @@ getWeChatOpenIDCallbackR = do
         <ul>
           $forall ResponderInfo id entrance name wcOpenId <- responders
             <li><a href=@?{(SubmitRequestAndWaitR, [("userId", ST.pack (show userId)),("responderId", ST.pack (show id))])}>#{entrance}
-    |] -}
-  defaultLayout $ do
+    |]
+  {- defaultLayout $ do
     setTitle "Debug"
     toWidget [hamlet|
       <h1>Debug Only!
       <p>#{show accessTokenResponseBody}
-    |]
+    |] -}
 
 getSubmitRequestAndWaitR :: Handler Html
 getSubmitRequestAndWaitR = defaultLayout $ toWidget [hamlet|Nothing here!|]

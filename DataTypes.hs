@@ -69,7 +69,7 @@ data GetAccessTokenResponse =
 instance FromJSON GetAccessTokenResponse where
   parseJSON (Object v) = GetAccessTokenResponse <$>
     v .: "access_token" <*>
-    v .: "openId"
+    v .: "openid"
   parseJSON _ = mempty
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
