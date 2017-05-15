@@ -101,11 +101,11 @@ getWeChatOpenIDCallbackR = do
   let userOpenId = openId accessTokenJSON
   let targetUserInfo = [st|https://api.weixin.qq.com/sns/userinfo?access_token=#{token}&openid=#{userOpenId}&lang=#{languagePreference}|]
   requestUserInfo <- parseRequest $ ST.unpack targetUserInfo
-  responseUserInfoL8 <- httpLBS requestUserInfo
-  let userInfoResponseBody = getResponseBody responseUserInfoL8
-  lift $ print userInfoResponseBody
-  -- (responseUserInfo :: Response UserInfo) <- httpJSON requestUserInfo
-  {- let userInfo = getResponseBody responseUserInfo
+  -- responseUserInfoL8 <- httpLBS requestUserInfo
+  -- let userInfoResponseBody = getResponseBody responseUserInfoL8
+  -- lift $ print userInfoResponseBody
+  (responseUserInfo :: Response UserInfo) <- httpJSON requestUserInfo
+  let userInfo = getResponseBody responseUserInfo
   let UserInfo {..} = userInfo
   userId <- runDB $ insert userInfo
   defaultLayout $ do
@@ -118,13 +118,13 @@ getWeChatOpenIDCallbackR = do
         <ul>
           $forall ResponderInfo id entrance name wcOpenId <- responders
             <li><a href=@?{(SubmitRequestAndWaitR, [("userId", ST.pack (show userId)),("responderId", ST.pack (show id))])}>#{entrance}
-    |] -}
-  defaultLayout $ do
+    |]
+  {- defaultLayout $ do
     setTitle "Debug"
     toWidget [hamlet|
       <h1>Debug Only!
       <p>#{show userInfoResponseBody}
-    |]
+    |] -}
 
 getSubmitRequestAndWaitR :: Handler Html
 getSubmitRequestAndWaitR = defaultLayout $ toWidget [hamlet|Nothing here!|]

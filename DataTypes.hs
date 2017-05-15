@@ -77,12 +77,12 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     openId String
     nickName String
     sex String
-    province String
+    language String
     city String
+    province String
     country String
     headImageUrl String
     privilege [String]
-    unionId String
     Primary openId
     deriving Show Read Eq
 |]
@@ -92,10 +92,10 @@ instance FromJSON UserInfo where
     v .: "openid" <*>
     v .: "nickname" <*>
     v .: "sex" <*>
-    v .: "province" <*>
+    v .: "language" <*>
     v .: "city" <*>
+    v .: "province" <*>
     v .: "country" <*>
     v .: "headimgurl" <*>
-    v .: "privilege" <*>
-    v .: "unionid"
+    v .: "privilege"
   parseJSON _ = mempty
