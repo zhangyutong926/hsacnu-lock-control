@@ -8,6 +8,7 @@ module Main where
 import qualified Network.URI.Encode as URIE
 import qualified Data.Text as ST
 import qualified Data.ByteString.Lazy as BS
+import qualified Data.ByteString.Lazy.Char8 as L8
 
 import Data.Maybe (fromJust)
 import Text.Read (readMaybe)
@@ -15,7 +16,6 @@ import Data.Aeson (decode, encode, eitherDecode, FromJSON, ToJSON, (.:))
 import Control.Monad.Logger (runNoLoggingT)
 import Data.String (fromString)
 import Text.Blaze.Html (toHtml)
-
 import System.Directory (doesFileExist, removeFile)
 
 import Yesod.Core
@@ -92,8 +92,11 @@ getWeChatOpenIDCallbackR = do
   let HsacnuLockControlConf {..} = appConf app
   let targetAccessToken = [st|https://api.weixin.qq.com/sns/oauth2/access_token?appid=#{wcAppId}&secret=#{wcAppSecret}&code=#{code}&grant_type=authorization_code|]
   requestAccessToken <- parseRequest $ ST.unpack targetAccessToken
-  (responseAccessToken :: Response GetAccessTokenResponse) <- httpJSON requestAccessToken
-  let accessTokenJSON = getResponseBody responseAccessToken
+  responseAccessTokenL8 <- httpLBS requestAccessToken
+  let accessTokenResponseBody = getResponseBody responseAccessTokenL8
+  lift $ print accessTokenResponseBody
+  -- (responseAccessToken :: Response GetAccessTokenResponse) <- httpJSON requestAccessToken
+  {- let accessTokenJSON = getResponseBody responseAccessToken
   let token = accessToken accessTokenJSON
   let userOpenId = openId accessTokenJSON
   let targetUserInfo = [st|https://api.weixin.qq.com/sns/userinfo?access_token=#{token}&openid=#{userOpenId}&lang=#{languagePreference}|]
@@ -112,6 +115,12 @@ getWeChatOpenIDCallbackR = do
         <ul>
           $forall ResponderInfo id entrance name wcOpenId <- responders
             <li><a href=@?{(SubmitRequestAndWaitR, [("userId", ST.pack (show userId)),("responderId", ST.pack (show id))])}>#{entrance}
+    |] -}
+  defaultLayout $ do
+    setTitle "Debug"
+    toWidget [hamlet|
+      <h1>Debug Only!
+      <p>#{show accessTokenResponseBody}
     |]
 
 getSubmitRequestAndWaitR :: Handler Html
