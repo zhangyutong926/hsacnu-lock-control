@@ -16,6 +16,8 @@ import Control.Monad.Logger (runNoLoggingT)
 import Data.String (fromString)
 import Text.Blaze.Html (toHtml)
 
+import System.Directory (doesFileExist, removeFile)
+
 import Yesod.Core
 import Yesod.Persist.Core
 import Text.Hamlet
@@ -115,6 +117,13 @@ getWeChatOpenIDCallbackR = do
 getSubmitRequestAndWaitR :: Handler Html
 getSubmitRequestAndWaitR = defaultLayout $ toWidget [hamlet|Nothing here!|]
 
+instance YesodPersist HsacnuLockControl where
+  type YesodPersistBackend HsacnuLockControl = SqlBackend
+
+  runDB action = do
+    HsacnuLockControl {..} <- getYesod
+    runSqlPool action connPool
+
 parseJsonConf :: BS.ByteString -> HsacnuLockControlConf
 parseJsonConf src = case eitherDecode src of
   Right d -> d
@@ -128,12 +137,13 @@ readJsonFileAndParse = do
   fileContent <- BS.readFile jsonConfFileName
   return $ parseJsonConf fileContent
 
-instance YesodPersist HsacnuLockControl where
-  type YesodPersistBackend HsacnuLockControl = SqlBackend
-
-  runDB action = do
-    HsacnuLockControl {..} <- getYesod
-    runSqlPool action connPool
+removeIfExists :: FilePath -> IO ()
+removeIfExists fileName = do
+  exist <- doesFileExist fileName
+  if exist
+    then removeFile fileName
+    else return ()
+  return ()
 
 main :: IO ()
 main = do
@@ -142,9 +152,11 @@ main = do
 
   conf <- readJsonFileAndParse
   print conf -- FIXME Debug Only
-  pool <- runNoLoggingT $ createSqlitePool "lock.db3" 10
+  let HsacnuLockControlConf {..} = conf
+  removeIfExists dbName
+  pool <- runNoLoggingT $ createSqlitePool (ST.pack dbName) dbConnPoolNum
   runSqlPool (runMigration migrateAll) pool
   let appInst = HsacnuLockControl conf pool
   
   putStrLn "Haskell Yesod Warp Web Engine, initiating..."
-  warp (servPort conf) appInst
+  warp servPort appInst

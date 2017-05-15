@@ -1,20 +1,20 @@
 {
     "servPort": 3000,
     "servDomain": "http://localhost:3000",
-    "callbackDomain": "http://localhost:3000"
+    "callbackDomain": "http://localhost:3000",
     "wcAppId": "a",
-    "wcAppSecret": "b",
-    "dbName": ":memory:",
+    "wcAppSecret": "a",
+    "dbName": "lock.db3",
     "dbConnPoolNum": 10,
-    "templateMsgId": "",
+    "templateMsgId": "a",
     "responders": [
         {
-	    "responderId": 0
+	    "responderId": 0,
             "entranceName": "Prof. Anqi Zhu's Office",
             "userName": "Prof. Anqi Zhu",
-            "userOpenId": "c"
+            "userOpenId": "a"
         }
     ],
-    "languagePreference": "en"
+    "languagePreference": "en",
     "siteName": "Hsacnu Lock Control Project Debug Site"
 }
