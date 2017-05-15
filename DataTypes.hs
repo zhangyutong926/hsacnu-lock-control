@@ -76,7 +76,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
   UserInfo
     openId String
     nickName String
-    sex String
+    sex Int
     language String
     city String
     province String
