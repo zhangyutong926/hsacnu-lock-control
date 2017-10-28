@@ -1,7 +1,7 @@
 {
     "servPort": 3000,
-    "servDomain": "http://localhost:3000",
-    "callbackDomain": "http://localhost:3000",
+    "servDomain": "http://192.168.1.110:3000",
+    "callbackDomain": "http://192.168.1.110:3000",
     "wcAppId": "a",
     "wcAppSecret": "a",
     "dbName": "lock.db3",
