@@ -16,5 +16,6 @@
         }
     ],
     "languagePreference": "en",
-    "siteName": "Hsacnu Lock Control Project Debug Site"
+    "siteName": "Hsacnu Lock Control Project Debug Site",
+    "invalidationMilliSec": 300000
 }

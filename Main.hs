@@ -62,7 +62,8 @@ data HsacnuLockControlConf =
     templateMsgId :: String,
     responders :: [ResponderInfo],
     languagePreference :: String,
-    siteName :: String
+    siteName :: String,
+    invalidationMilliSec :: Int
   } deriving (Eq, Show, Read)
 
 instance FromJSON HsacnuLockControlConf where
@@ -77,7 +78,8 @@ instance FromJSON HsacnuLockControlConf where
     v .: "templateMsgId" <*>
     v .: "responders" <*>
     v .: "languagePreference" <*>
-    v .: "siteName"
+    v .: "siteName" <*>
+    v .: "invalidationMilliSec"
   parseJSON _ = mempty
 
 data HsacnuLockControl =
@@ -85,18 +87,6 @@ data HsacnuLockControl =
     appConf :: HsacnuLockControlConf,
     connPool :: ConnectionPool
   }
-
-data GetAccessTokenResponse =
-  GetAccessTokenResponse {
-    accessToken :: String,
-    openId :: String
-  } deriving (Eq, Show, Read)
-
-instance FromJSON GetAccessTokenResponse where
-  parseJSON (Object v) = GetAccessTokenResponse <$>
-    v .: "access_token" <*>
-    v .: "openid"
-  parseJSON _ = mempty
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
   UserInfo
@@ -111,6 +101,13 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     privilege [String]
     Primary openId
     deriving Show Read Eq
+  UnlockReqInfo
+    userOpenId String
+    responderOpenId String
+    issuedTime String
+    invalidatedTime String
+    Primary userOpenId
+    deriving Show Read Eq
 |]
 
 instance FromJSON UserInfo where
@@ -124,6 +121,14 @@ instance FromJSON UserInfo where
     v .: "country" <*>
     v .: "headimgurl" <*>
     v .: "privilege"
+  parseJSON _ = mempty
+
+instance FromJSON UnlockReqInfo where
+  parseJSON (Object v) = UnlockReqInfo <$>
+    v .: "userOpenId" <*>
+    v .: "responderOpenId" <*>
+    v .: "issuedTime" <*>
+    v .: "invalidatedTime"
   parseJSON _ = mempty
 
 mkYesod "HsacnuLockControl" [parseRoutes|
@@ -153,7 +158,6 @@ getHomeR = defaultLayout $ do
   app <- getYesod
   let HsacnuLockControlConf {..} = appConf app
   setTitle $ toHtml $ siteName ++ " - Home Page"
-  urlRender <- getUrlRender
   toWidget [hamlet|
     <h1>#{siteName} - Home Page
     <p>
@@ -170,6 +174,18 @@ getWeChatOpenIDRedirectR = do
   redirect ([st|
     https://open.weixin.qq.com/connect/oauth2/authorize?appid=#{wcAppId conf}&redirect_uri=#{encoded}&response_type=code&scope=snsapi_userinfo#wechat_redirect
   |])
+
+data GetAccessTokenResponse =
+  GetAccessTokenResponse {
+    accessToken :: String,
+    openId :: String
+  } deriving (Eq, Show, Read)
+
+instance FromJSON GetAccessTokenResponse where
+  parseJSON (Object v) = GetAccessTokenResponse <$>
+    v .: "access_token" <*>
+    v .: "openid"
+  parseJSON _ = mempty
 
 getWeChatOpenIDCallbackR :: Handler Html
 getWeChatOpenIDCallbackR = do
@@ -201,8 +217,8 @@ getWeChatOpenIDCallbackR = do
       <h1>Login successful!
       <p>
         <ul>
-          $forall ResponderInfo id entrance name wcOpenId <- responders
-            <li><a href=@?{(SubmitRequestAndWaitR, [("userId", ST.pack (show userId)),("responderId", ST.pack (show id))])}>#{entrance}
+          $forall ResponderInfo responderId entrance name wcOpenId <- responders
+            <li><a href=@?{(SubmitRequestAndWaitR, [("userId", ST.pack (show userId)),("responderId", ST.pack (show responderId))])}>#{entrance}
     |]
   {- defaultLayout $ do
     setTitle "Debug"
@@ -246,6 +262,7 @@ main :: IO ()
 main = do
   putStrLn "HsacnuLockControl Project Server-Side Software Version 1.0, initiating..."
   putStrLn "Source Code License: Public Domain License CC0"
+  putStrLn "Academia Humana magna est."
 
   conf <- readJsonFileAndParse
   print conf -- FIXME Debug Only
