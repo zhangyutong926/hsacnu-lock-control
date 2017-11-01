@@ -26,6 +26,7 @@ executable          HsacnuLockControl
                   , monad-logger
                   , http-conduit
                   , directory
+                  , http-client
 
   extensions:       OverloadedStrings
                   , QuasiQuotes

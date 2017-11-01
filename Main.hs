@@ -32,6 +32,9 @@ import Database.Persist
 import Database.Persist.Sqlite
 import Database.Persist.TH
 
+import Data.Aeson
+import Network.HTTP.Client
+
 data ResponderInfo =
   ResponderInfo {
     responderId :: Int,
@@ -88,6 +91,9 @@ data HsacnuLockControl =
     connPool :: ConnectionPool
   }
 
+instance Yesod HsacnuLockControl where
+  approot = ApprootMaster $ ST.pack . servDomain . appConf
+
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
   UserInfo
     openId String
@@ -109,6 +115,13 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     Primary userOpenId
     deriving Show Read Eq
 |]
+
+instance YesodPersist HsacnuLockControl where
+  type YesodPersistBackend HsacnuLockControl = SqlBackend
+
+  runDB action = do
+    HsacnuLockControl {..} <- getYesod
+    runSqlPool action connPool
 
 instance FromJSON UserInfo where
   parseJSON (Object v) = UserInfo <$>
@@ -145,9 +158,6 @@ mkYesod "HsacnuLockControl" [parseRoutes|
 /responce_submit ResponceSubmitR GET
 -}
 
-instance Yesod HsacnuLockControl where
-  approot = ApprootMaster $ ST.pack . servDomain . appConf
-
 -- Prepared jQuery outsite source
 jQueryW :: Widget
 jQueryW = addScriptRemote "https://code.jquery.com/jquery-3.2.1.min.js"
@@ -170,7 +180,8 @@ getWeChatOpenIDRedirectR = do
   app <- getYesod
   let conf = appConf app
   urlRender <- getUrlRender
-  let encoded = URIE.encode $ ST.unpack $ urlRender SubmitRequestAndWaitR
+  let encoded = URIE.encode $ ST.unpack $ urlRender WeChatOpenIDCallbackR
+  liftIO $ putStrLn encoded
   redirect ([st|
     https://open.weixin.qq.com/connect/oauth2/authorize?appid=#{wcAppId conf}&redirect_uri=#{encoded}&response_type=code&scope=snsapi_userinfo#wechat_redirect
   |])
@@ -218,7 +229,7 @@ getWeChatOpenIDCallbackR = do
       <p>
         <ul>
           $forall ResponderInfo responderId entrance name wcOpenId <- responders
-            <li><a href=@?{(SubmitRequestAndWaitR, [("userId", ST.pack (show userId)),("responderId", ST.pack (show responderId))])}>#{entrance}
+            <li><a href=@?{(SubmitRequestAndWaitR, [("userId", ST.pack (show userId)),("responderId", ST.pack (show responderId)), ("accessToken", ST.pack (show token))])}>#{entrance}
     |]
   {- defaultLayout $ do
     setTitle "Debug"
@@ -227,15 +238,33 @@ getWeChatOpenIDCallbackR = do
       <p>#{show userInfoResponseBody}
     |] -}
 
+data TemplatedMessageRequest =
+  TemplatedMessageRequest {
+    toUser :: String,
+    templateId :: String,
+    url :: String,
+    topColor :: String
+  } deriving (Eq, Show, Read)
+
+instance ToJSON TemplatedMessageRequest where
+  toJSON TemplatedMessageRequest {..} = object [
+    "touser" .= toUser,
+    "template_id" .= templateId,
+    "url" .= url,
+    "topcolor" .= topColor ]
+
 getSubmitRequestAndWaitR :: Handler Html
-getSubmitRequestAndWaitR = defaultLayout $ toWidget [hamlet|Nothing here!|]
-
-instance YesodPersist HsacnuLockControl where
-  type YesodPersistBackend HsacnuLockControl = SqlBackend
-
-  runDB action = do
-    HsacnuLockControl {..} <- getYesod
-    runSqlPool action connPool
+getSubmitRequestAndWaitR = do
+  Just userId <- lookupGetParam "userId"
+  Just responderId <- lookupGetParam "responderId"
+  Just accessToken <- lookupGetParam ""
+  app <- getYesod
+  let HsacnuLockControlConf {..} = appConf app
+  let reqJson = encode $ TemplatedMessageRequest (ST.unpack responderId) templateMsgId ("javascript:alert(\"" ++ (ST.unpack userId) ++ "\\n" ++ (ST.unpack responderId) ++ "\\n" ++ (ST.unpack accessToken) ++ "\");window.location.replace('https://www.inria.fr/');") "#666"
+  nakedRequest <- parseRequest $ "POST https://api.wechat.com/cgi-bin/message/template/send?access_token=" ++ (ST.unpack accessToken)
+  let request = nakedRequest { method = "POST", requestBody = RequestBodyLBS reqJson }
+  response <- httpLBS request
+  defaultLayout $ toWidget [hamlet|#{L8.unpack $ getResponseBody response}|]
 
 parseJsonConf :: BS.ByteString -> HsacnuLockControlConf
 parseJsonConf src = case eitherDecode src of
