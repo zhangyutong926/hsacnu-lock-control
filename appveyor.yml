@@ -1,10 +1,19 @@
 build: off
 
+cache:
+- "c:\\sr" # stack root, short paths == fewer problems
+- "c:\\stack"
+
 before_build:
 - curl -ostack.zip -L --insecure http://www.stackage.org/stack/windows-x86_64
 - 7z x stack.zip stack.exe
 
 skip_tags: true
+
+clone_folder: "c:\\stack"
+environment:
+  global:
+    STACK_ROOT: "c:\\sr"
 
 build_script:
 # Suppress output from stack setup, as there is a lot and it's not necessary.
