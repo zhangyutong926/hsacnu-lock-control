@@ -1,19 +1,28 @@
 build: off
 
-before_test:
-# http://help.appveyor.com/discussions/problems/6312-curl-command-not-found
-- set PATH=C:\Program Files\Git\mingw64\bin;%PATH%
-
-- curl -sS -ostack.zip -L --insecure https://www.stackage.org/stack/windows-x86_64
+before_build:
+- curl -ostack.zip -L --insecure http://www.stackage.org/stack/windows-x86_64
 - 7z x stack.zip stack.exe
 
-clone_folder: "c:\\stack"
-environment:
-  global:
-    STACK_ROOT: "c:\\sr"
+skip_tags: true
 
-test_script:
-- stack setup > nul
-# The ugly echo "" hack is to avoid complaints about 0 being an invalid file
-# descriptor
-- echo "" | stack build
+build_script:
+# Suppress output from stack setup, as there is a lot and it's not necessary.
+- stack setup
+- stack build --only-snapshot
+- stack --local-bin-path . install HsacnuLockControl
+# Set a magical environment variable
+- cmd: for /f %%i in ('stack exec -- HsacnuLockControl -v') do set HSACNU_LOCK_CONTROL_VERSION=%%i
+
+artifacts:
+- path: HsacnuLockControl.exe
+
+# Auto-deploy
+deploy:
+  - provider: GitHub
+    release: '$(HSACNU_LOCK_CONTROL_VERSION) Windows AppVeyor'
+    auth_token:
+      secure: 2Rd2BdYlvoBvebPpFpqsc+YFvuSen1VH+P2D9iKK1n1ISeDXTLxY8noj8KeQaCkH
+    artifact: HsacnuLockControl.exe
+    on:
+      branch: master
