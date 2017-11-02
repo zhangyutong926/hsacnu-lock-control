@@ -1,40 +1,26 @@
-# This is the simple Travis configuration, which is intended for use
-# on applications which do not require cross-platform and
-# multiple-GHC-version support. For more information and other
-# options, see:
-#
-# https://docs.haskellstack.org/en/stable/travis_ci/
-#
-# Copy these contents into the root directory of your Github project in a file
-# named .travis.yml
-
-# Use new container infrastructure to enable caching
 sudo: false
-
-# Do not choose a language; we provide our own build tools.
 language: generic
-
-# Caching so the next build will be fast too.
 cache:
   directories:
   - $HOME/.stack
-
-# Ensure necessary system libraries are present
 addons:
   apt:
     packages:
-      - libgmp-dev
-
+    - libgmp-dev
 before_install:
-# Download and unpack the stack executable
 - mkdir -p ~/.local/bin
 - export PATH=$HOME/.local/bin:$PATH
-- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
-
+- travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards
+  --strip-components=1 -C ~/.local/bin '*/stack'
 install:
-# Build dependencies
 - stack --no-terminal --install-ghc test --only-dependencies
-
 script:
-# Build the package, its tests, and its docs and run the tests
 - stack --no-terminal test --haddock --no-haddock-deps
+deploy:
+  skip_cleanup: true
+  provider: releases
+  api_key:
+    secure: ngZNAlU7RwoljShn0ZNFPfMGhMxIskAIFLgNwDHZR/LSwI4/O6AnUiPhMiLC6oqoJJ57dp7vDZcqtDmOJwzVlUL22WkqC849mzZsT35Qc8COQqSHMaEnN/M6Df+/BSRgsaHdF7K2xMZFJNaLuvhxLP6dFbfulNmjpIrWQJcmhjOdZ5Zpy2OG8N+S9NPj2TgWk/Y1jqftEeU7fkPqktfqnJpPdNPtiSztUDcmCPtpm1PtjyHX8aGWqeUpemXKUUnYuT/DxrCDISE5kpiixlq2wlHivGJ+JfBpB2g/OPGcZX+H83cnYh7CZuoux408dbefiag3NEJqWN/CEoAwigyVdBhcuMw/QkvVp9DvpVymsAZ0Hk5OPQeCVxtqOQ0+rvn+B1mNM/XayUnomAcJR+cdODaZsOxsIH5WD58eAQryTgEBkjSlvjNeXNzkLV4BGLlz433sQroAsMDFSx7KG18+JixZh6ry1wKMd21a0hkr6H5+OhBnvwDKYBLpLBC9tawsRiqak5+Ti7V0avwEu9DIYn40Nw822u6GMbNbZnU2ry7VwY+ew8JaCcJ2I2CuhnNm8y4+Z3s95VmstUIUbM3P+XKv6JzmcPogiPPMtLl1xv4o62MqjZhI1RknWVxpCWIpBGhiMR0rc0XYyQ+YigOdRb7+e6KHNCWiw73iI24tGGg=
+  file: /home/travis/build/zhangyutong926/hsacnu-lock-control/.stack-work/install/x86_64-linux/lts-9.10/8.0.2/bin/HsacnuLockControl
+  on:
+    repo: zhangyutong926/hsacnu-lock-control

@@ -106,6 +106,7 @@ share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
     headImageUrl String
     privilege [String]
     Primary openId
+    UserInfoOpenIdU openId
     deriving Show Read Eq
   UnlockReqInfo
     userOpenId String
@@ -221,7 +222,7 @@ getWeChatOpenIDCallbackR = do
   (responseUserInfo :: Response UserInfo) <- httpJSON requestUserInfo
   let userInfo = getResponseBody responseUserInfo
   let UserInfo {..} = userInfo
-  _ <- runDB $ delete openId
+  _ <- runDB $ deleteBy $ UserInfoOpenIdU (let UserInfo id _ _ _ _ _ _ _ _ = userInfo in id)
   openId <- runDB $ insert userInfo
   defaultLayout $ do
     setTitle $ toHtml $ siteName ++ " - Login Callback"
