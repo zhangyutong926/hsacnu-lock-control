@@ -221,7 +221,8 @@ getWeChatOpenIDCallbackR = do
   (responseUserInfo :: Response UserInfo) <- httpJSON requestUserInfo
   let userInfo = getResponseBody responseUserInfo
   let UserInfo {..} = userInfo
-  userId <- runDB $ insert userInfo
+  _ <- runDB $ delete userId
+  openId <- runDB $ insert userInfo
   defaultLayout $ do
     setTitle $ toHtml $ siteName ++ " - Login Callback"
     toWidget [hamlet|
@@ -229,7 +230,7 @@ getWeChatOpenIDCallbackR = do
       <p>
         <ul>
           $forall ResponderInfo responderId entrance name wcOpenId <- responders
-            <li><a href=@?{(SubmitRequestAndWaitR, [("userId", ST.pack (show userId)),("responderId", ST.pack (show responderId)), ("accessToken", ST.pack (show token))])}>#{entrance}
+            <li><a href=@?{(SubmitRequestAndWaitR, [("userId", ST.pack (show openId)),("responderId", ST.pack (show responderId)), ("accessToken", ST.pack (show token))])}>#{entrance}
     |]
   {- defaultLayout $ do
     setTitle "Debug"
@@ -257,7 +258,7 @@ getSubmitRequestAndWaitR :: Handler Html
 getSubmitRequestAndWaitR = do
   Just userId <- lookupGetParam "userId"
   Just responderId <- lookupGetParam "responderId"
-  Just accessToken <- lookupGetParam ""
+  Just accessToken <- lookupGetParam "accessToken"
   app <- getYesod
   let HsacnuLockControlConf {..} = appConf app
   let reqJson = encode $ TemplatedMessageRequest (ST.unpack responderId) templateMsgId ("javascript:alert(\"" ++ (ST.unpack userId) ++ "\\n" ++ (ST.unpack responderId) ++ "\\n" ++ (ST.unpack accessToken) ++ "\");window.location.replace('https://www.inria.fr/');") "#666"
