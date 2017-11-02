@@ -20,8 +20,6 @@ build_script:
 - stack setup
 - stack build --only-snapshot
 - stack --local-bin-path . install HsacnuLockControl
-# Set a magical environment variable
-- cmd: for /f %%i in ('stack exec -- HsacnuLockControl -v') do set HSACNU_LOCK_CONTROL_VERSION=%%i
 
 artifacts:
 - path: HsacnuLockControl.exe
@@ -29,7 +27,7 @@ artifacts:
 # Auto-deploy
 deploy:
   - provider: GitHub
-    release: '$(HSACNU_LOCK_CONTROL_VERSION) Windows AppVeyor'
+    release: '$(APPVEYOR_JOB_ID) Windows AppVeyor'
     auth_token:
       secure: 2Rd2BdYlvoBvebPpFpqsc+YFvuSen1VH+P2D9iKK1n1ISeDXTLxY8noj8KeQaCkH
     artifact: HsacnuLockControl.exe
