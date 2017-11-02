@@ -221,7 +221,7 @@ getWeChatOpenIDCallbackR = do
   (responseUserInfo :: Response UserInfo) <- httpJSON requestUserInfo
   let userInfo = getResponseBody responseUserInfo
   let UserInfo {..} = userInfo
-  _ <- runDB $ delete userId
+  _ <- runDB $ delete openId
   openId <- runDB $ insert userInfo
   defaultLayout $ do
     setTitle $ toHtml $ siteName ++ " - Login Callback"
